@@ -26,8 +26,6 @@ class ThresholdFunction:
         else:
             self.LinFormCoeff = np.asarray(coefficients)
 
-
-        # Todo Правильно почтать минимальную и максимальную линейные формы
         self.MaxLinForm = np.dot(self.DomainDimension - 1, np.where(self.LinFormCoeff < 0, 0, self.LinFormCoeff))
         self.MinLinForm = np.dot(self.DomainDimension - 1, np.where(self.LinFormCoeff > 0, 0, self.LinFormCoeff))
 
@@ -40,7 +38,6 @@ class ThresholdFunction:
 
         self.Grid = np.indices(self.DomainDimension).reshape((len(self.DomainDimension), -1)).T
         self.__F = self.get_value(self.Grid).reshape(self.DomainDimension)
-        print(self.__F)
         # self.F.update({float("-inf"): self.ImageDimension - 1})
 
     def show_options(self):
@@ -50,7 +47,7 @@ class ThresholdFunction:
         print("MinLinForm = ", self.MinLinForm)
         print("Borders = ", self.Borders)
         print("ImageDimension = ", self.ImageDimension)
-        print("F = ", self.BorderList)
+        print("F = ", self.__F)
 
     def normalization(self):
         # Todo Придумать нормализацию, в которой среднее между max и min будет равно 0.5
@@ -68,18 +65,54 @@ class ThresholdFunction:
             R[scalar > border] = i + 1
         return R
 
+    def correction(self, u, v):
+        self.LinFormCoeff = self.LinFormCoeff + u - v
+        return self.LinFormCoeff
+
+    def calculate_increase_coeff(self, i):
+        sum = 0
+        k = self.DomainDimension[i]
+        tempGrid = self.Grid.copy()
+        for l in range(0, k-2 + 1):
+            tempGrid[:, i] = l
+            R = self.__F[tuple(zip(*tempGrid))]
+            for e in range(l+1, k-1 + 1):
+                tempGrid[:, i] = e
+                sum += self.__F[tuple(zip(*tempGrid))] - R
+        # return np.sum(sum)/k
+        return sum/k
+
+    def increase_coeff(self, i):
+        sum = 0
+        k = self.DomainDimension[i]
+        tempGrid = self.Grid.copy()
+        for e in range(0, k-1 + 1):
+            tempGrid[:, i] = e
+            sum += (2*e + 1 - k) * self.__F[tuple(zip(*tempGrid))]
+        # return np.sum(sum)/k
+        return sum/k
+
+    def RF(self,x):
+        return self.__F[tuple(zip(*x))]
 
 
 
 for i in range(1):
-    # t1 = ThresholdFunction(7, np.random.randint(2, 150, np.random.randint(2, 100, 1)))
-    # t1 = ThresholdFunction(7, cube=(3, 3))
-    t1 = ThresholdFunction(7, (2, 2, 2, 2))
+    t1 = ThresholdFunction(5, cube=(5, 5), coefficients=(1, -25, 14, -43, 43), borders=(-164, -69, 53, 110))
+    # t1 = ThresholdFunction(np.random.randint(2, 100),np.random.randint(2, 10, np.random.randint(1, 5)) )
+    # t1.show_options()
+    # t1 = ThresholdFunction(5, cube=(5, 2))
+    print(i)
     t1.show_options()
+    print(t1.calculate_increase_coeff(0))
+    print(t1.calculate_increase_coeff(1))
+    # t1.correction((1,0,0,0),(0,0,0,1))
 
-    answer = t1.get_value(t1.Grid).reshape(t1.DomainDimension)
-    a = [(0,0,1,0),(0,0,0,1)]
-    print("dadsad   ", answer[tuple(zip(*a))])
+    print(np.prod(t1.DomainDimension))
+    # answer = t1.get_value(t1.Grid).reshape(t1.DomainDimension)
+    # a = [(0, 0, 1, 0), (0, 0, 0, 1)]
+    # print("d", answer[tuple(zip(*a))])
+    # print(t1.Grid[8])
     # t1.normalization()
     # t1.show_options()
 
