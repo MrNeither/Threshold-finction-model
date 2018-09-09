@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 class ThresholdFunction:
@@ -114,14 +115,23 @@ class ThresholdFunction:
         l = l - u + v
         return l
 
+    def draw(self):
+        colors = "rbgcmykw"
+        F = list(map(lambda i: self.Grid[self.get_value(self.Grid) == i], range(self.ImageDimension)))
+        for i in range(0,len(F)):
+            plt.plot(F[i][:,0],F[i][:,1],'o', color=colors[i%len(F)])
+        plt.show()
+
+
 t1 = ThresholdFunction(5, cube=(5, 2))
 while (t1.check() == True):
-    t1 = ThresholdFunction(4, cube=(4, 2))
+    t1 = ThresholdFunction(4, cube=(10, 2))
     # t1 = ThresholdFunction(5, cube=(5, 5), coefficients=(1, -25, 14, -43, 43), borders=(-164, -69, 53, 110))
     # t1 = ThresholdFunction(np.random.randint(2, 100),np.random.randint(2, 10, np.random.randint(1, 5)) )
 
 print(t1.show_options())
 print(list(map(lambda i: t1.calculate_increase_coeff(i), range(len(t1.DomainRings)))))
+t1.draw()
     # answer = t1.get_value(t1.Grid).reshape(t1.DomainDimension)
     # a = [(0, 0, 1, 0), (0, 0, 0, 1)]
     # print("d", answer[tuple(zip(*a))])
