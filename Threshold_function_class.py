@@ -117,11 +117,45 @@ class ThresholdFunction:
 
     def draw(self):
         colors = "rbgcmykw"
+        markers = "xo"
         F = list(map(lambda i: self.Grid[self.get_value(self.Grid) == i], range(self.ImageDimension)))
+        F = [F[i] for i in range(len(F)) if len(F[i]) != 0]
         for i in range(0,len(F)):
-            plt.plot(F[i][:,0],F[i][:,1],'o', color=colors[i%len(F)])
+            plt.plot(F[i][:, 0], F[i][:, 1], markers[i % 2], color=colors[i % len(F)], markersize=3)
+
+        for border in self.Borders:
+            X,Y = self.line(border,self.LinFormCoeff)
+            # plt.plot(X,Y, linewidth=1, color='black')
+
+        l = list(map(lambda i: t1.calculate_increase_coeff(i), range(len(t1.DomainRings))))
+        for i in range(0,len(F)):
+            X, Y = self.line(np.max(F[i]), l)
+            print(X,Y)
+            plt.plot(X, Y, linewidth=1, color='red')
+
         plt.show()
 
+    def line(self, b, a):
+        # a1x1+a2x2+b=0   =>  x1 = (b+a2x2)/-a1  x2 = (b+a1x1)/-a2
+        X = []
+        Y = []
+        print("b = ",b)
+        b *= -1
+        a1,a2 = a
+        if 0 <= b/-a1 <= self.DomainRings[0]:
+            X.append(b/-a1)
+            Y.append(0)
+        if 0 <= b/-a2 <= self.DomainRings[1]:
+            X.append(0)
+            Y.append(b/-a2)
+        if 0 <= (b + a2 * self.DomainRings[1]) / -a1 <= self.DomainRings[0]:
+            X.append((b + a2 * self.DomainRings[1]) / -a1)
+            Y.append(self.DomainRings[1])
+        if 0 <= (b + a1 * self.DomainRings[0]) / -a2 <= self.DomainRings[1]:
+            X.append(self.DomainRings[0])
+            Y.append((b + a1 * self.DomainRings[0]) / -a2)
+
+        return X, Y
 
 t1 = ThresholdFunction(5, cube=(5, 2))
 while (t1.check() == True):
@@ -132,6 +166,7 @@ while (t1.check() == True):
 print(t1.show_options())
 print(list(map(lambda i: t1.calculate_increase_coeff(i), range(len(t1.DomainRings)))))
 t1.draw()
+# t1.line(0)
     # answer = t1.get_value(t1.Grid).reshape(t1.DomainDimension)
     # a = [(0, 0, 1, 0), (0, 0, 0, 1)]
     # print("d", answer[tuple(zip(*a))])
