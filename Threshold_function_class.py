@@ -40,15 +40,27 @@ class ThresholdFunction:
         self.Grid = np.indices(self.DomainRings).reshape((len(self.DomainRings), -1)).T
         self.__F = self.get_value(self.Grid).reshape(self.DomainRings)
 
-    def show_options(self):
-        print("LinFormCoeff = ", self.LinFormCoeff)
-        print("DomainRings = ", self.DomainRings)
-        print("DomainDimension = ", self.DomainDimension)
-        print("MaxLinForm = ", self.MaxLinForm)
-        print("MinLinForm = ", self.MinLinForm)
-        print("Borders = ", self.Borders)
-        print("ImageDimension = ", self.ImageDimension)
-        print("F = \n", self.__F)
+    def write_options(self, namefile=None):
+        if namefile is None:
+            print("LinFormCoeff = ", self.LinFormCoeff)
+            print("DomainRings = ", self.DomainRings)
+            print("DomainDimension = ", self.DomainDimension)
+            print("MaxLinForm = ", self.MaxLinForm)
+            print("MinLinForm = ", self.MinLinForm)
+            print("Borders = ", self.Borders)
+            print("ImageDimension = ", self.ImageDimension)
+            print("F = \n", self.__F)
+        else:
+            with open(namefile, 'w') as f:
+                f.write("LinFormCoeff = " + str(self.LinFormCoeff) + "\n")
+                f.write("DomainRings = " + str(self.DomainRings) + "\n")
+                f.write("DomainDimension = " + str(self.DomainDimension) + "\n")
+                f.write("MaxLinForm = " + str(self.MaxLinForm) + "\n")
+                f.write("MinLinForm = " + str(self.MinLinForm) + "\n")
+                f.write("Borders = " + str(self.Borders) + "\n")
+                f.write("ImageDimension = " + str(self.ImageDimension) + "\n")
+                f.write("F = \n"+ str(self.__F) + "\n")
+            f.close()
 
     def normalization(self):
         eps = np.max(np.abs(self.LinFormCoeff))
@@ -65,24 +77,12 @@ class ThresholdFunction:
             R[scalar >= border] = i + 1
         return R
 
-    def calculate_increase_coeff(self, i):
+    def calculate_increase_coeff_type1(self, ind):
         sum = 0
-        k = self.DomainRings[i]
-        tempGrid = self.Grid.copy()
-        for l in range(0, k-2 + 1):
-            tempGrid[:, i] = l
-            R = self.__F[tuple(zip(*tempGrid))]
-            for e in range(l+1, k-1 + 1):
-                tempGrid[:, i] = e
-                sum += self.__F[tuple(zip(*tempGrid))] - R
-        return np.sum(sum)/k
-
-    def increase_coeff(self, i):
-        sum = 0
-        k = self.DomainRings[i]
+        k = self.DomainRings[ind]
         tempGrid = self.Grid.copy()
         for e in range(0, k-1 + 1):
-            tempGrid[:, i] = e
+            tempGrid[:, ind] = e
             sum += (2*e + 1 - k) * self.__F[tuple(zip(*tempGrid))]
         return np.sum(sum)/k
 
@@ -90,87 +90,76 @@ class ThresholdFunction:
         pass
 
     def check(self):
-        l = list(map(lambda i: self.calculate_increase_coeff(i), range(len(self.DomainRings))))
+        l = list(map(lambda i: self.calculate_increase_coeff_type1(i), range(len(self.DomainRings))))
         F = list(map(lambda i: self.Grid[self.get_value(self.Grid) == i], range(self.ImageDimension)))
         F = [F[i] for i in range(len(F)) if len(F[i]) != 0]
-        maxF=[]
-        minF=[]
-        argMax=[]
-        argMin=[]
+        maxF = []
+        minF = []
+        argMax = []
+        argMin = []
         for i in range(0, len(F)):
             maxF.append(np.max(np.dot(F[i], l)))
             argMax.append(np.argmax(np.dot(F[i], l)))
             minF.append(np.min(np.dot(F[i], l)))
             argMin.append(np.argmin(np.dot(F[i], l)))
-        for i in range(1,len(F)-1):
+
+        for i in range(0, len(F)-1):
             if minF[i+1] <= maxF[i]:
-                # print("maxF[", i, "] =", maxF[i], ">=", minF[i+1], "= minF[", i+1, "]")
-                # print(argMax)
-                # print(argMin)
                 return False
         return True
 
     @staticmethod
-    def correction(self, l, u, v):
+    def correction(l, u, v):
         l = l - u + v
         return l
 
-    def draw(self):
-        colors = "rbgcmykw"
+    def draw2d(self, name=None):
+        colors = "rbgcmyk"
         markers = "xo"
         F = list(map(lambda i: self.Grid[self.get_value(self.Grid) == i], range(self.ImageDimension)))
         F = [F[i] for i in range(len(F)) if len(F[i]) != 0]
         for i in range(0,len(F)):
-            plt.plot(F[i][:, 0], F[i][:, 1], markers[i % 2], color=colors[i % len(F)], markersize=3)
+            plt.plot(F[i][:, 0], F[i][:, 1], markers[i % 2], color=colors[i % len(colors)], markersize=4)
 
         for border in self.Borders:
-            X,Y = self.line(border,self.LinFormCoeff)
-            # plt.plot(X,Y, linewidth=1, color='black')
+            X, Y = self.line1d(border, self.LinFormCoeff)
+            plt.plot(X, Y, linewidth=1, color='black')
 
-        l = list(map(lambda i: t1.calculate_increase_coeff(i), range(len(t1.DomainRings))))
-        for i in range(0,len(F)):
-            X, Y = self.line(np.max(F[i]), l)
-            print(X,Y)
+        l = list(map(lambda i: self.calculate_increase_coeff_type1(i), range(len(self.DomainRings))))
+        for i in range(0, len(F)-1):
+            b = (np.max(np.dot(F[i], l)) + np.min(np.dot(F[i + 1], l)))/2
+            X, Y = self.line1d(b, l)
             plt.plot(X, Y, linewidth=1, color='red')
 
-        plt.show()
 
-    def line(self, b, a):
+        plt.grid()
+        if name is None:
+            plt.show()
+        else:
+            plt.savefig(name)
+        plt.close()
+
+    def line1d(self, b, a):
         # a1x1+a2x2+b=0   =>  x1 = (b+a2x2)/-a1  x2 = (b+a1x1)/-a2
         X = []
         Y = []
-        print("b = ",b)
-        b *= -1
-        a1,a2 = a
-        if 0 <= b/-a1 <= self.DomainRings[0]:
-            X.append(b/-a1)
+        k1, k2 = self.DomainRings
+        a1, a2 = a
+        if a1 == 0:
+            a1 = 0.00000001
+        if a2 == 0:
+            a2 = 0.00000001
+
+        if 0 <= b/a1 <= k1 - 1:
+            X.append(b/a1)
             Y.append(0)
-        if 0 <= b/-a2 <= self.DomainRings[1]:
+        if 0 <= b/a2 <= k2 - 1:
             X.append(0)
-            Y.append(b/-a2)
-        if 0 <= (b + a2 * self.DomainRings[1]) / -a1 <= self.DomainRings[0]:
-            X.append((b + a2 * self.DomainRings[1]) / -a1)
-            Y.append(self.DomainRings[1])
-        if 0 <= (b + a1 * self.DomainRings[0]) / -a2 <= self.DomainRings[1]:
-            X.append(self.DomainRings[0])
-            Y.append((b + a1 * self.DomainRings[0]) / -a2)
-
+            Y.append(b/a2)
+        if 0 <= (b - a2 * (k2 - 1)) / a1 <= k1 - 1:
+            X.append((b - a2 * (k2 - 1)) / a1)
+            Y.append(k2 - 1)
+        if 0 <= (b - a1 * (k1 - 1)) / a2 <= k2 - 1:
+            X.append(k1 - 1)
+            Y.append((b - a1 * (k1 - 1)) / a2)
         return X, Y
-
-t1 = ThresholdFunction(5, cube=(5, 2))
-while (t1.check() == True):
-    t1 = ThresholdFunction(4, cube=(10, 2))
-    # t1 = ThresholdFunction(5, cube=(5, 5), coefficients=(1, -25, 14, -43, 43), borders=(-164, -69, 53, 110))
-    # t1 = ThresholdFunction(np.random.randint(2, 100),np.random.randint(2, 10, np.random.randint(1, 5)) )
-
-print(t1.show_options())
-print(list(map(lambda i: t1.calculate_increase_coeff(i), range(len(t1.DomainRings)))))
-t1.draw()
-# t1.line(0)
-    # answer = t1.get_value(t1.Grid).reshape(t1.DomainDimension)
-    # a = [(0, 0, 1, 0), (0, 0, 0, 1)]
-    # print("d", answer[tuple(zip(*a))])
-    # print(t1.Grid[8])
-    # t1.normalization()
-    # t1.show_options()
-
